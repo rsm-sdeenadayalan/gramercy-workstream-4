@@ -29,8 +29,29 @@ provenance, methodology written as executable specification.
 | Rater design | **LLM rater panel**: 2 independent models score blind from a shared evidence pack; Cohen's kappa ≥ 0.7 gate per dimension |
 | Evidence | **APIs + agentic research**: quantitative anchors from free structured APIs; qualitative evidence packs via Claude+Tavily research agent; every claim has source URL + collection date |
 | Scope | CGM **and** CSI integration |
-| Deployment | Master repo `gramercy-csi` orchestrates WS1–WS4 + integration; workstream repos cloned as siblings, pinned via `versions.lock` (no submodules) |
+| Deployment | Master repo `gramercy-csi` orchestrates WS1–WS4 + integration; workstream repos cloned as siblings, pinned via SHAs in `workstreams.yaml` (no submodules) |
 | Divergence resolution | **Third-LLM arbiter** with documented reasoning |
+| Orchestrator default | **Integrate-only** (read the four live views); `--full` opts into end-to-end pipeline re-runs |
+| System architecture | **Standard workstream contract** + manifest-driven orchestrator + hard gates with explicit provisional mode (approved 2026-06-09) |
+
+## The standard workstream contract
+
+Every workstream (WS1–WS4, and any future WS5) exposes the same small interface;
+the master orchestrator depends only on this contract, never on internals:
+
+1. **Idempotent setup** — `setup_*.py` provisions the workstream's own DB + schema.
+2. **One orchestrator entry** — `run_*.py` with uniform flags (`--only <phase>`)
+   and meaningful exit codes (nonzero on failure, including verify failure).
+3. **A hard verify gate** — `*_verify.py`, exit 1 on failure. Quality is enforced
+   inside the workstream, not by the master.
+4. **A canonical output view** — `v_<index>_latest` (`country_iso`, sub-scores,
+   composite, `computed_at`). This view IS the integration API.
+5. **A gap report** — missing data surfaced, never silently absorbed.
+
+WS2/WS3 already conform; WS4 is built to conform. **WS1 needs light harmonization**
+(in scope, as a small PR to `gramercy-workstream-1`): add a canonical
+`v_sdi_latest` view aliasing `v_sdi_ranked`, and confirm/fix `run_all.py`
+exit-code propagation on verify failure. No restructuring of WS1's flat layout.
 
 ## Context: upstream state (verified 2026-06-09)
 
@@ -171,11 +192,27 @@ preserved):
    `cgm_evidence` with quote/summary, source URL, source type, and access date.
    Packs are immutable per run; raters see the pack, not the live web.
 
+3. **Evidence completeness checklist**: the spec's "Evidence required" items per
+   dimension are encoded as a checklist; `cgm_evidence.py` records which items each
+   pack satisfies. Packs missing required items are flagged in `cgm_data_gaps`, and
+   `cgm_verify` reports per-pack evidence coverage alongside kappa. Rationale:
+   shared evidence packs create correlated error that agreement statistics cannot
+   see — if both raters score from the same hole, they agree and are wrong. Coverage
+   is measured independently of agreement.
+
 ## Rater panel
 
-- **Rater A:** `claude-sonnet-4-6`, `temperature=0`.
+- **Rater A:** `claude-sonnet-4-6`, `temperature=0`, **rubric-clause-first prompt**
+  (walk the rubric levels top-down, find the first clause the evidence satisfies).
 - **Rater B:** `claude-opus-4-5`, `temperature=0` (Opus 4.5 accepts sampling params;
-  4.7/4.8 reject `temperature` — same determinism rationale as WS3's judge).
+  4.7/4.8 reject `temperature` — same determinism rationale as WS3's judge),
+  **evidence-first prompt** (summarize what the evidence establishes, then map that
+  picture onto the rubric).
+- The structurally different prompts deliberately decorrelate the raters' reasoning
+  paths. Both models are Anthropic siblings with correlated training; kappa between
+  them overstates true inter-rater reliability. This is a first-order limitation,
+  stated prominently in the methodology paper — prompt decorrelation mitigates but
+  does not remove it.
 - Each rater independently scores all 6 countries × 5 dimensions from the identical
   evidence pack (anchors + qualitative claims), blind to the other rater.
 - Output per (country, dimension): integer score 1–5, the rubric clause matched,
@@ -192,6 +229,16 @@ preserved):
   6 countries, plus raw agreement and adjacent (±1) agreement. Kappa at N=6 is
   statistically fragile — reported with that caveat; the gate still applies as the
   spec demands.
+- **Kappa degeneracy rule** (explicit, because N=6 on a 5-point scale makes kappa
+  pathological): kappa measures agreement beyond chance, so when observed score
+  variance is zero or near-zero, kappa is undefined or ~0 even under perfect
+  agreement. Decision rule per dimension: if raw agreement = 100% and kappa is
+  undefined (zero variance), the dimension **passes** and kappa is reported as
+  `N/A (degenerate — perfect agreement, no variance)`; otherwise the kappa ≥ 0.7
+  gate applies. Additionally, a **pooled linear-weighted kappa across all 30
+  country×dimension pairs** is computed and reported as the statistically
+  meaningful headline reliability number (not gated — the spec's gate is
+  per-dimension).
 - **Divergence > 1 point** → `cgm_arbiter.py`: a third LLM call (Opus 4.5, distinct
   arbiter prompt) sees both raters' scores + rationales + the evidence pack and
   issues a resolved score with written reasoning → `cgm_arbitrations` (the spec's
@@ -204,11 +251,15 @@ preserved):
 
 ## QA gate (`cgm_verify.py`, exit 1 on any failure)
 
-1. Linear-weighted kappa ≥ 0.7 for **each** of the 5 dimensions.
+1. Linear-weighted kappa ≥ 0.7 for **each** of the 5 dimensions (subject to the
+   degeneracy rule above: 100% agreement with zero variance passes as `N/A`).
 2. Every final score has ≥1 evidence citation.
 3. All 6 countries × 5 dimensions have final scores.
 4. Dimension weights sum to 1.0; every final score within [1, 5].
 5. Every divergence >1 point has an arbitration row.
+6. Evidence coverage reported per pack (required-items checklist); packs below full
+   coverage are listed (informational in v1 — gating on coverage would block on
+   genuinely unavailable evidence; gaps go to `cgm_data_gaps` instead).
 
 ## Schema (`cgm` database)
 
@@ -258,8 +309,8 @@ replacing humans and why, evidence-pack recency, anchor gaps).
 ```
 bootstrap.sh          # clone/update 4 workstream repos as siblings at pinned SHAs,
                       # create merged venv, run each setup_*.py (idempotent)
-versions.lock         # repo -> commit SHA pins
-run_csi.py            # master orchestrator
+workstreams.yaml      # the manifest (below) — incl. pinned commit SHAs
+run_csi.py            # master orchestrator (thin: iterates the manifest)
 csi/
   csi_schema.sql      # csi DB: csi_runs, csi_inputs (snapshot of 4 indices),
                       #   csi_scores, csi_sensitivity, v_csi_ranked
@@ -267,19 +318,50 @@ csi/
   csi_sensitivity.py  # weight perturbation + structure tests
   csi_verify.py       # gate: 6 countries, all 4 inputs present, math reproducible
 docs/CSI_INTEGRATION.md
+CLAUDE.md             # the workstream contract + how to operate/extend the system,
+                      #   written so an agent can run everything from docs alone
 .env.example, requirements.txt
 tests/
 ```
 
-## Orchestration
+## Manifest-driven orchestration
 
-`run_csi.py` runs, in order: WS1 `run_all.py` → WS2 `cii/run_cii.py` → WS3
-`cldv/run_cldv.py` → WS4 `cgm/run_cgm.py` → `csi_integrate` → `csi_verify`.
-Each workstream is skippable (`--skip ws1`) or runnable alone (`--only ws4`,
-`--only integrate`); `--collect-only` style flags pass through where the underlying
-pipeline supports them. A workstream failure halts before integration unless
-`--keep-going`, in which case integration runs on the latest existing DB state and
-flags staleness. Each phase's exit code and duration are logged to `csi_runs`.
+`workstreams.yaml` declares each workstream — the orchestrator has no per-workstream
+code, only the manifest:
+
+```yaml
+ws1:
+  repo: https://github.com/rsm-sdeenadayalan/gramercy-workstream-1
+  pin: <sha>
+  setup: python setup.py
+  run: python run_all.py
+  verify: python si1_verify.py && ...     # as exposed by the repo
+  db: gramercy_workstream1
+  view: v_sdi_latest
+  scale: 0-100
+# ws2/ws3/ws4 follow identically (cii/run_cii.py, cldv/run_cldv.py, cgm/run_cgm.py)
+```
+
+Adding a future workstream = adding a manifest entry. This implements the sponsor's
+modularity principle: the framework/execution separation lives in the manifest.
+
+**Default mode is integrate-only**: `run_csi.py` reads the four live views, computes
+CSI + sensitivity, runs `csi_verify` — seconds, no API keys, no collector fragility.
+`run_csi.py --full` opts into end-to-end deployment: each workstream's `setup` +
+`run` + `verify` in manifest order, then integration. Per-workstream control:
+`--skip ws1`, `--only ws4`, `--only integrate`. A workstream failure halts before
+integration unless `--keep-going`. Each phase's exit code and duration are logged
+to `csi_runs`.
+
+## Provisional mode and staleness
+
+- Integration snapshots each input view's `computed_at` into `csi_inputs`; any input
+  older than `CSI_STALE_DAYS` (default 90) raises a staleness warning in the output.
+- **Provisional mode:** before integrating, the orchestrator runs each workstream's
+  `verify` command (cheap, read-only). If any upstream gate fails — today that is
+  WS3 SI1 concordance (66.2% < 80%) — CSI still computes but every output row and
+  the report header are marked **PROVISIONAL**, naming the failing gates. The master
+  never publishes a clean CSI over a red upstream gate.
 
 ## Integration math
 
@@ -313,6 +395,17 @@ WS3 SI1 concordance 66.2% pending calibration; CGM single-period; N=6).
 
 ---
 
+# Build sequencing
+
+1. **CGM** (`gramercy-workstream-4`) — fully independent of upstream defects;
+   build and gate it first.
+2. **Master repo, integrate-only** (`gramercy-csi`) — immediately yields a
+   PROVISIONAL CSI baseline over current upstream state, plus WS1 harmonization PR
+   (`v_sdi_latest`, exit codes).
+3. **Upstream fixes** (separate efforts, out of scope here): WS1 minerals
+   sub-index, WS3 SI1 calibration.
+4. **First non-provisional full CSI run** once upstream gates are green.
+
 # Cross-cutting
 
 - **Secrets:** `.env` per repo (`POSTGRES_*`, `ANTHROPIC_API_KEY`,
@@ -328,8 +421,11 @@ WS3 SI1 concordance 66.2% pending calibration; CGM single-period; N=6).
 2. **CGM Methodology Paper** — `docs/CGM_METHODOLOGY.md`.
 3. **Unified CSI** — ranking + sensitivity + integration methodology
    (`csi` DB + `docs/CSI_INTEGRATION.md`), per Integration Requirements 1–4.
-4. **Complete deployment** — `gramercy-csi` bootstrap + master orchestrator running
-   WS1→WS4→integration end-to-end.
+4. **Complete deployment** — `gramercy-csi` bootstrap + manifest-driven master
+   orchestrator running WS1→WS4→integration end-to-end (`--full`), integrate-only
+   by default, with provisional-mode labeling while any upstream gate is red.
+5. **WS1 harmonization PR** — canonical `v_sdi_latest` view + verified exit-code
+   propagation in `gramercy-workstream-1`.
 
 # Out of scope
 
