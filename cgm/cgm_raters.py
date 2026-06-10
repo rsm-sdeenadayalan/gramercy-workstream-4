@@ -2,7 +2,6 @@
 (deliberate decorrelation - both models are Anthropic siblings). A score that
 cites no valid evidence IDs is re-requested once with the validation error;
 on second failure it is stored NULL and flagged as a blocker gap."""
-import json
 import os
 
 import cgm_db
@@ -48,7 +47,7 @@ def build_rater_prompt(country_iso, dimension, evidence_rows, anchor_rows):
 
 def validate_rating(rating, allowed_ids):
     score = rating.get("score")
-    if not isinstance(score, int) or not 1 <= score <= 5:
+    if isinstance(score, bool) or not isinstance(score, int) or not 1 <= score <= 5:
         return f"invalid score: {score!r} (must be int 1-5)"
     ids = rating.get("evidence_ids")
     if not ids or not isinstance(ids, list):
@@ -115,6 +114,29 @@ def run_raters(conn, run_id):
                     row = cur.fetchone()
                 if row is not None and row[0] is not None and not force:
                     continue  # cached
+                if not evidence:
+                    # No evidence pack — validation can never pass; skip LLM calls
+                    if row is not None and row[0] is not None:
+                        continue  # already has a cached non-NULL score
+                    err = "no evidence pack - cannot rate"
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            """INSERT INTO cgm_rater_scores (country_iso, dimension,
+                               rater_model, score, rubric_clause, evidence_ids,
+                               rationale, scored_at)
+                               VALUES (%s, %s, %s, %s, %s, %s, %s, now())
+                               ON CONFLICT (country_iso, dimension, rater_model)
+                               DO UPDATE SET score=EXCLUDED.score,
+                                 rubric_clause=EXCLUDED.rubric_clause,
+                                 evidence_ids=EXCLUDED.evidence_ids,
+                                 rationale=EXCLUDED.rationale, scored_at=now()""",
+                            (country, dim, model, None, None, None, err),
+                        )
+                    conn.commit()
+                    cgm_db.add_gap(conn, run_id, country, dim,
+                                   f"rater {model} produced no valid score: {err}",
+                                   severity="blocker")
+                    continue
                 rating, err = rate_one(model, system, country, dim,
                                        evidence, anchors)
                 with conn.cursor() as cur:

@@ -1,5 +1,4 @@
-import json
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -50,3 +49,52 @@ def test_validate_rating_accepts_good():
 def test_validate_rating_rejects_bad(bad, msg):
     err = validate_rating(bad, allowed_ids={11})
     assert err is not None and msg in err
+
+
+def test_validate_rating_rejects_boolean_score():
+    """Fix B: isinstance(True, int) is True — booleans must be rejected."""
+    err = validate_rating(
+        {"score": True, "rubric_clause": "x", "evidence_ids": [11], "rationale": "r"},
+        allowed_ids={11},
+    )
+    assert err is not None and "score" in err
+
+
+def test_run_raters_skips_llm_when_evidence_empty():
+    """Fix A: empty evidence pack must short-circuit — no LLM calls, NULL row upserted,
+    blocker gap added once per rater."""
+    import cgm_raters
+
+    # cursor mock: fetchone returns None (no cached row)
+    mock_cursor = MagicMock()
+    mock_cursor.__enter__ = lambda s: s
+    mock_cursor.__exit__ = MagicMock(return_value=False)
+    mock_cursor.fetchone.return_value = None
+
+    conn = MagicMock()
+    conn.cursor.return_value = mock_cursor
+
+    mock_cgm_db = MagicMock()
+
+    with (
+        patch("cgm_raters.rate_one") as mock_rate_one,
+        patch("cgm_raters.cgm_db", mock_cgm_db),
+        patch("cgm_raters.load_pack", return_value=([], [])),
+        patch("cgm_raters.COUNTRIES", ["AE"]),
+        patch("cgm_raters.DIMENSIONS", ["ai_policy"]),
+    ):
+        run_raters_fn = cgm_raters.run_raters
+        run_raters_fn(conn, "rid")
+
+    mock_rate_one.assert_not_called()
+    # One INSERT/upsert per rater (2 raters) — cursor.execute called for cache-check
+    # and upsert per rater; count just the upsert calls via INSERT keyword
+    insert_calls = [
+        c for c in mock_cursor.execute.call_args_list
+        if "INSERT" in str(c)
+    ]
+    assert len(insert_calls) == 2, f"Expected 2 upsert calls, got {len(insert_calls)}"
+    # add_gap called twice (once per rater) with severity="blocker"
+    assert mock_cgm_db.add_gap.call_count == 2
+    for call in mock_cgm_db.add_gap.call_args_list:
+        assert call.kwargs.get("severity") == "blocker" or call.args[-1] == "blocker"
