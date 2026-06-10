@@ -1,0 +1,33 @@
+run da731728-05d7-480a-8faa-230a815189a7: phases=['anchors', 'evidence', 'rate', 'arbitrate', 'score', 'verify', 'gap']
+--- phase: anchors
+--- phase: evidence
+--- phase: rate
+--- phase: arbitrate
+--- phase: score
+cannot score: missing rater score for US/tech_stack (see cgm_data_gaps)
+run 80eb248f-7001-4d39-9f73-5eb8d4a06ab5: phases=['anchors', 'evidence', 'rate', 'arbitrate', 'score', 'verify', 'gap']
+--- phase: anchors
+--- phase: evidence
+--- phase: rate
+--- phase: arbitrate
+--- phase: score
+cannot score: missing rater score for US/tech_stack (see cgm_data_gaps)
+run 48d0da66-e653-4cfd-9cfa-6d6017902ee9: phases=['anchors', 'evidence', 'rate', 'arbitrate', 'score', 'verify', 'gap']
+--- phase: anchors
+--- phase: evidence
+--- phase: rate
+--- phase: arbitrate
+--- phase: score
+--- phase: verify
+=== CGM VERIFY ===
+kappa[ai_policy] = 0.571 raw=0.67
+kappa[permitting] = 0.455 raw=0.33
+kappa[value_capture] = 1.000 raw=1.00
+kappa[tech_stack] = 0.500 raw=0.67
+kappa[workforce] = 1.000 raw=1.00
+kappa[pooled] = 0.741 raw=0.73
+
+FAIL (3):
+  - kappa below gate on ai_policy: 0.5714285714285714 < 0.7
+  - kappa below gate on permitting: 0.4545454545454546 < 0.7
+  - kappa below gate on tech_stack: 0.5 < 0.7
