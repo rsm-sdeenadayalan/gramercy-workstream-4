@@ -67,14 +67,14 @@ EVIDENCE_CHECKLIST = {
     "ai_policy": [
         "national AI strategy document",
         "dedicated AI budget (USD and % of GDP)",
-        "time from AI system development to legal deployment",
-        "tax incentives or disincentives for AI",
+        "estimated time from AI system development to legal deployment",
+        "tax incentives/disincentives",
         "regulatory sandbox count and scope",
         "national AI coordinating body existence and mandate",
     ],
     "permitting": [
         "average permitting timeline for data centers and power generation",
-        "announced vs completed projects (3-year completion ratio)",
+        "announced vs. completed projects (3-year completion ratio)",
         "special economic zones or fast-track frameworks",
         "documented delays or cancellations",
     ],
