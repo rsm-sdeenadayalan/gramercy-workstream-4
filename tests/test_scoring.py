@@ -6,6 +6,18 @@ from cgm_scoring import combine_scores, composite, perturb_weights, sensitivity
 from cgm_rubrics import WEIGHTS
 
 
+def test_resolve_arbitration_passthrough():
+    from cgm_scoring import resolve_arbitration
+    assert resolve_arbitration([2, 5], (2, 5, 4)) == 4
+    assert resolve_arbitration([2, 5], None) is None
+
+
+def test_resolve_arbitration_stale_raises():
+    from cgm_scoring import resolve_arbitration
+    with pytest.raises(ValueError, match="stale arbitration"):
+        resolve_arbitration([3, 5], (2, 5, 4))
+
+
 def test_combine_equal():
     assert combine_scores(4, 4, None) == 4.0
 

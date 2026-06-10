@@ -6,6 +6,21 @@ import json
 from cgm_rubrics import ARCHETYPE, COUNTRIES, DIMENSIONS, WEIGHTS
 
 
+def resolve_arbitration(rater_scores, arb_row):
+    """arb_row = (rater_a_score, rater_b_score, resolved_score) or None.
+    Returns resolved_score or None, raising if the snapshot is stale."""
+    if arb_row is None:
+        return None
+    stored = (arb_row[0], arb_row[1])
+    if stored != tuple(rater_scores):
+        raise ValueError(
+            f"stale arbitration: stored rater scores {stored} != current "
+            f"{tuple(rater_scores)} - delete the cgm_arbitrations row and re-run"
+            " --only arbitrate"
+        )
+    return arb_row[2]
+
+
 def combine_scores(score_a, score_b, arbiter_score):
     if score_a == score_b:
         return float(score_a)
@@ -62,7 +77,8 @@ def compute_final_scores(conn, run_id, rater_models):
                 )
                 rows = cur.fetchall()
                 cur.execute(
-                    "SELECT resolved_score FROM cgm_arbitrations"
+                    "SELECT rater_a_score, rater_b_score, resolved_score"
+                    " FROM cgm_arbitrations"
                     " WHERE country_iso=%s AND dimension=%s", (country, dim),
                 )
                 arb = cur.fetchone()
@@ -72,7 +88,7 @@ def compute_final_scores(conn, run_id, rater_models):
                     " (see cgm_data_gaps)"
                 )
             dims[dim] = combine_scores(rows[0][1], rows[1][1],
-                                       arb[0] if arb else None)
+                                       resolve_arbitration([rows[0][1], rows[1][1]], arb))
         country_dims[country] = dims
         with conn.cursor() as cur:
             cur.execute(
