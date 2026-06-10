@@ -1,11 +1,13 @@
 """CGM QA gate. Pure check_* functions return lists of failure strings; main()
 fetches from the DB, runs every check, computes+stores kappa, prints a report,
-and exits 1 on any failure. The master orchestrator runs this read-only."""
+and exits 1 on any failure. Re-runnable: kappa rows for the run are replaced,
+never duplicated."""
+import math
 import sys
 
 import cgm_db
 from cgm_kappa import agreement_stats, linear_weighted_kappa
-from cgm_rubrics import COUNTRIES, DIMENSIONS
+from cgm_rubrics import COUNTRIES, DIMENSIONS, WEIGHTS
 
 KAPPA_GATE = 0.7
 
@@ -49,6 +51,13 @@ def check_arbitrations(divergent_pairs, arbitrated):
             for c, d, a, b in divergent_pairs if (c, d) not in arbitrated]
 
 
+def check_weights(weights):
+    total = sum(weights.values())
+    if not math.isclose(total, 1.0):
+        return [f"dimension weights sum to {total}, not 1.0"]
+    return []
+
+
 def compute_and_store_kappa(conn, run_id):
     """Per-dimension + pooled kappa over the two raters' scores."""
     rows_out = []
@@ -76,6 +85,10 @@ def compute_and_store_kappa(conn, run_id):
     # agreement_stats would divide by zero and kappa would be meaningless.
     if pooled_a:
         rows_out.append(("pooled", pooled_a, pooled_b))
+
+    with conn.cursor() as cur:
+        cur.execute("DELETE FROM cgm_kappa_results WHERE run_id = %s", (run_id,))
+    conn.commit()
 
     stored = []
     for dim, a, b in rows_out:
@@ -138,15 +151,20 @@ def main(run_id=None):
         + check_evidence_citations(rater_rows)
         + check_score_ranges(final_rows)
         + check_arbitrations(divergent, arbitrated)
+        + check_weights(WEIGHTS)
     )
     if not final_rows:
         failures.append("no final scores for latest run - scoring phase not run")
 
     print("=== CGM VERIFY ===")
     for row in kappa_rows:
-        kappa_txt = ("N/A (degenerate - perfect agreement)"
-                     if row["degenerate"] and row["raw_agreement"] == 1.0
-                     else str(row["kappa_linear"]))
+        if row["degenerate"]:
+            if row["raw_agreement"] == 1.0:
+                kappa_txt = "N/A (degenerate - perfect agreement)"
+            else:
+                kappa_txt = "N/A (degenerate)"
+        else:
+            kappa_txt = f"{row['kappa_linear']:.3f}"
         print(f"kappa[{row['dimension']}] = {kappa_txt}"
               f" raw={row['raw_agreement']:.2f}")
     if failures:

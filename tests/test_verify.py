@@ -58,3 +58,10 @@ def test_arbitrations():
                               arbitrated={("US", "ai_policy")}) == []
     fails = check_arbitrations([("US", "ai_policy", 2, 4)], arbitrated=set())
     assert len(fails) == 1
+
+
+def test_check_weights():
+    from cgm_verify import check_weights
+    assert check_weights({"a": 0.5, "b": 0.5}) == []
+    fails = check_weights({"a": 0.5, "b": 0.4})
+    assert len(fails) == 1 and "0.9" in fails[0]
