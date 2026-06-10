@@ -7,6 +7,13 @@ WS3 CLDV).
 
 **CGM = 0.25*AIPolicy + 0.20*Permitting + 0.20*ValueCapture + 0.20*TechStack + 0.15*Workforce**
 
+> **Status: PROVISIONAL — first live run (2026-06-09) FAILED the inter-rater
+> kappa gate on 3 of 5 dimensions** (ai_policy 0.571, tech_stack 0.500,
+> permitting 0.455 vs the 0.7 gate; pooled kappa 0.741, adjacent agreement
+> 100%). Scores exist in `v_cgm_latest` but are not publishable until rater
+> calibration brings every dimension over the gate. See
+> `docs/CGM_METHODOLOGY.md` §7.
+
 ## Setup
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
