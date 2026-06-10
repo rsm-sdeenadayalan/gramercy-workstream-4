@@ -46,7 +46,18 @@ def test_call_llm_retries_then_succeeds(mock_cls, _sleep):
     mock_cls.return_value = client
     client.messages.create.side_effect = [
         Exception("overloaded"),
-        MagicMock(content=[MagicMock(text="ok")]),
+        MagicMock(content=[MagicMock(text="ok")], stop_reason="end_turn"),
     ]
     assert call_llm("m", "s", "u") == "ok"
     assert client.messages.create.call_count == 2
+
+
+@patch("cgm_llm.anthropic.Anthropic")
+def test_call_llm_raises_on_truncation(mock_cls):
+    client = MagicMock()
+    mock_cls.return_value = client
+    client.messages.create.return_value = MagicMock(
+        content=[MagicMock(text='{"cut off')], stop_reason="max_tokens"
+    )
+    with pytest.raises(RuntimeError, match="truncated"):
+        call_llm("m", "s", "u")

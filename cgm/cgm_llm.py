@@ -22,6 +22,10 @@ def call_llm(model, system, user, max_tokens=2000):
                 system=system,
                 messages=[{"role": "user", "content": user}],
             )
+            if resp.stop_reason == "max_tokens":
+                raise RuntimeError(
+                    f"LLM output truncated at max_tokens={max_tokens}"
+                )
             return resp.content[0].text
         except Exception as err:  # noqa: BLE001 - retry then surface
             last_err = err

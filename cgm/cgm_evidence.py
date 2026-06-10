@@ -22,7 +22,7 @@ for sovereign governance scoring. Output STRICT JSON:
 Rules: only claims directly supported by the provided source content; source_url
 must be one of the provided URLs; checklist_item must be one of the provided
 items verbatim; no opinions, no scores, no speculation. Empty list if nothing
-is supported."""
+is supported. At most 2 claims per checklist item; keep each quote under 25 words."""
 
 
 def tavily_search(query, max_results=5):
@@ -86,7 +86,7 @@ def collect_evidence(conn, run_id, extract_model):
                 if results:
                     prompt = build_extract_prompt(name, dim, checklist, results)
                     text = call_llm(extract_model, EXTRACT_SYSTEM, prompt,
-                                    max_tokens=4000)
+                                    max_tokens=8000)
                     claims = parse_claims(text, {r["url"] for r in results})
             except Exception as err:  # noqa: BLE001 - log and skip; retry next run
                 cgm_db.log_collection(conn, run_id, f"evidence:{country}:{dim}",
