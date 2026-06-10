@@ -8,9 +8,9 @@ CREATE TABLE IF NOT EXISTS cgm_runs (
 
 CREATE TABLE IF NOT EXISTS cgm_collection_log (
     id      SERIAL PRIMARY KEY,
-    run_id  UUID REFERENCES cgm_runs(run_id),
+    run_id  UUID NOT NULL REFERENCES cgm_runs(run_id),
     source  TEXT NOT NULL,
-    status  TEXT NOT NULL,           -- ok | error | skipped
+    status  TEXT NOT NULL CHECK (status IN ('ok','error','skipped')),
     detail  TEXT,
     ts      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS cgm_raw_anchors (
 
 CREATE TABLE IF NOT EXISTS cgm_evidence (
     evidence_id    SERIAL PRIMARY KEY,
-    run_id         UUID REFERENCES cgm_runs(run_id),
+    run_id         UUID NOT NULL REFERENCES cgm_runs(run_id),
     country_iso    TEXT NOT NULL,
     dimension      TEXT NOT NULL,
     checklist_item TEXT NOT NULL,
@@ -58,8 +58,8 @@ CREATE TABLE IF NOT EXISTS cgm_arbitrations (
     id             SERIAL PRIMARY KEY,
     country_iso    TEXT NOT NULL,
     dimension      TEXT NOT NULL,
-    rater_a_score  INT NOT NULL,
-    rater_b_score  INT NOT NULL,
+    rater_a_score  INT NOT NULL CHECK (rater_a_score BETWEEN 1 AND 5),
+    rater_b_score  INT NOT NULL CHECK (rater_b_score BETWEEN 1 AND 5),
     resolved_score INT NOT NULL CHECK (resolved_score BETWEEN 1 AND 5),
     arbiter_model  TEXT NOT NULL,
     reasoning      TEXT NOT NULL,
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS cgm_arbitrations (
 
 CREATE TABLE IF NOT EXISTS cgm_kappa_results (
     id                 SERIAL PRIMARY KEY,
-    run_id             UUID REFERENCES cgm_runs(run_id),
+    run_id             UUID NOT NULL REFERENCES cgm_runs(run_id),
     dimension          TEXT NOT NULL,        -- 5 dims + 'pooled'
     kappa_linear       NUMERIC,              -- NULL when degenerate
     degenerate         BOOLEAN NOT NULL DEFAULT FALSE,
@@ -81,9 +81,9 @@ CREATE TABLE IF NOT EXISTS cgm_kappa_results (
 
 CREATE TABLE IF NOT EXISTS cgm_score_final (
     id            SERIAL PRIMARY KEY,
-    run_id        UUID REFERENCES cgm_runs(run_id),
+    run_id        UUID NOT NULL REFERENCES cgm_runs(run_id),
     country_iso   TEXT NOT NULL,
-    archetype     TEXT NOT NULL,             -- substrate | processor
+    archetype     TEXT NOT NULL CHECK (archetype IN ('substrate','processor')),
     ai_policy     NUMERIC NOT NULL,
     permitting    NUMERIC NOT NULL,
     value_capture NUMERIC NOT NULL,
@@ -96,7 +96,7 @@ CREATE TABLE IF NOT EXISTS cgm_score_final (
 
 CREATE TABLE IF NOT EXISTS cgm_score_methodology (
     id           SERIAL PRIMARY KEY,
-    run_id       UUID REFERENCES cgm_runs(run_id),
+    run_id       UUID NOT NULL REFERENCES cgm_runs(run_id),
     weights      JSONB NOT NULL,
     rater_models JSONB NOT NULL,
     sensitivity  JSONB,
@@ -105,11 +105,11 @@ CREATE TABLE IF NOT EXISTS cgm_score_methodology (
 
 CREATE TABLE IF NOT EXISTS cgm_data_gaps (
     id          SERIAL PRIMARY KEY,
-    run_id      UUID REFERENCES cgm_runs(run_id),
+    run_id      UUID NOT NULL REFERENCES cgm_runs(run_id),
     country_iso TEXT,
     dimension   TEXT,
     gap         TEXT NOT NULL,
-    severity    TEXT NOT NULL DEFAULT 'warn',  -- warn | blocker
+    severity    TEXT NOT NULL DEFAULT 'warn' CHECK (severity IN ('warn','blocker')),
     ts          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -120,5 +120,7 @@ SELECT f.country_iso, f.archetype,
        RANK() OVER (ORDER BY f.cgm_score DESC) AS rank,
        f.computed_at
 FROM cgm_score_final f
-WHERE f.run_id = (SELECT run_id FROM cgm_score_final
-                  ORDER BY computed_at DESC LIMIT 1);
+WHERE f.run_id = (SELECT f2.run_id FROM cgm_score_final f2
+                  JOIN cgm_runs r ON r.run_id = f2.run_id
+                  WHERE r.finished_at IS NOT NULL
+                  ORDER BY f2.computed_at DESC LIMIT 1);

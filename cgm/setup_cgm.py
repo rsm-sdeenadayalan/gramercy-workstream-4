@@ -1,7 +1,7 @@
 """Create the `cgm` database (if missing) and apply the schema. Idempotent."""
 import os
 
-import psycopg2
+from psycopg2 import sql
 
 import cgm_db
 
@@ -14,7 +14,7 @@ def main():
     with conn.cursor() as cur:
         cur.execute("SELECT 1 FROM pg_database WHERE datname = %s", (target,))
         if not cur.fetchone():
-            cur.execute(f'CREATE DATABASE "{target}" TEMPLATE template0')
+            cur.execute(sql.SQL("CREATE DATABASE {} TEMPLATE template0").format(sql.Identifier(target)))
             print(f"created database {target}")
     conn.close()
 

@@ -51,7 +51,7 @@ def log_collection(conn, run_id, source, status, detail=""):
         cur.execute(
             "INSERT INTO cgm_collection_log (run_id, source, status, detail)"
             " VALUES (%s, %s, %s, %s)",
-            (run_id, source, status, detail[:2000]),
+            (run_id, source, status, (detail or "")[:2000]),
         )
     conn.commit()
 
