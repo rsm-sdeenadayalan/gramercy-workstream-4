@@ -51,6 +51,9 @@ def run_arbiter(conn, run_id):
                 rows = cur.fetchall()
             if len(rows) != 2:
                 continue  # missing rater score -> already a blocker gap
+            # "Rater A"/"Rater B" here follow lexicographic rater_model order
+            # (same ordering as scoring and verify), NOT the panel personas in
+            # cgm_raters: a = claude-opus-4-5, b = claude-sonnet-4-6.
             a, b = (dict(zip(("rater_model", "score", "rubric_clause",
                               "rationale"), r)) for r in rows)
             if not needs_arbitration(a["score"], b["score"]):
@@ -61,7 +64,10 @@ def run_arbiter(conn, run_id):
                     " AND dimension=%s", (country, dim),
                 )
                 if cur.fetchone():
-                    continue  # already arbitrated
+                    # Already arbitrated. Note: after a CGM_RATE_FORCE re-rate,
+                    # this row may snapshot stale rater scores; delete the
+                    # affected cgm_arbitrations rows to force re-arbitration.
+                    continue
             evidence, anchors = load_pack(conn, country, dim)
             prompt = build_arbiter_prompt(country, dim, a, b, evidence, anchors)
             score, reasoning = parse_resolution(
