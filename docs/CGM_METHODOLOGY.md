@@ -199,8 +199,12 @@ continues. A response whose value is null is logged `skipped` and recorded as
 `cgm_raw_anchors` keyed on `(country_iso, metric, year)`, preserving the
 request URL and the full raw JSON payload.
 
-First-run outcome: 28 of 36 cells landed; 8 missing cells recorded as `warn`
-gaps (e.g. adult literacy is not reported for several high-income countries).
+First-run outcome: the initial anchors pass logged 8 missing cells as `warn`
+gaps. Seven of those 8 failures were transient network errors that self-healed
+on resume runs (the anchors phase upserts idempotently, so re-running it fills
+any gaps that were transient). The final corpus has **35 of 36** cells; the
+only genuinely unreported cell is **US adult literacy (`SE.ADT.LITR.ZS`)**,
+which the World Bank does not report for the United States.
 
 ### 3.2 Qualitative evidence packs (`cgm/cgm_evidence.py`)
 
@@ -569,7 +573,9 @@ under any perturbation.
 
 ### 7.5 Run history (operational record)
 
-- World Bank anchors: 28/36 cells landed; 8 missing recorded as `warn` gaps.
+- World Bank anchors: initial pass logged 8 gaps as `warn`; 7 were transient
+  and self-healed on resume runs (upsert). Final state: **35/36** cells loaded;
+  only **US adult literacy (`SE.ADT.LITR.ZS`)** is a genuine data gap.
 - The first full run halted at scoring because the US/tech_stack evidence pack
   was empty: the extraction LLM output exceeded `max_tokens=4000` and
   truncated mid-JSON — deterministically, at temperature 0, on every retry.
@@ -642,8 +648,10 @@ arbitrating all of them would roughly double LLM cost for no information gain
 *Alternatives:* arbitrate everything (rejected: cost, and it launders the
 disagreement signal out of the kappa statistics); always take the lower/more
 conservative score (rejected: introduces systematic bias).
-*Sensitivity impact:* half-point finals (6 of 30 dimension finals in the
-first run are X.5). In the first run the rule resolved all 8 disagreements;
+*Sensitivity impact:* half-point finals (8 of 30 dimension finals in the
+first run are X.5: SG/permitting 4.5, IN/permitting 3.5, IN/tech_stack 4.5,
+BR/ai_policy 3.5, BR/permitting 2.5, PH/ai_policy 3.5, PH/permitting 2.5,
+PH/tech_stack 3.5). In the first run the rule resolved all 8 disagreements;
 the arbiter path executed zero times live (it is covered by tests).
 
 **5. Per-dimension kappa gate kept at 0.7 despite N=6 fragility; pooled kappa
@@ -682,8 +690,11 @@ numbers makes the trade-off auditable.
    drift; packs are immutable by design, so refreshing requires a new
    collection (delete pack rows or use a fresh database) and constitutes a new
    scoring period.
-4. **Missing anchor cells.** 8 of 36 World Bank indicator×country cells were
-   unavailable (recorded as `warn` gaps). Raters scored those cells from
+4. **Missing anchor cells.** The initial anchors pass logged 8 gaps; 7 were
+   transient failures that self-healed across resume runs. Final state: 35 of
+   36 World Bank indicator×country cells are present. The one genuine gap is
+   **US adult literacy (`SE.ADT.LITR.ZS`)**, which the World Bank does not
+   report for the United States. Raters scored the US/workforce cell from
    qualitative evidence plus the remaining anchors.
 5. **Top-rank weight fragility.** SG (4.70) leads AE (4.65) by 0.05; 4 of 10
    ±10pp weight perturbations flip the pair. The #1/#2 ordering should be
@@ -748,6 +759,16 @@ cp .env.example .env   # then fill in:
 .venv/bin/python cgm/run_cgm.py --only verify      # QA gate - exits 1 on failure
 .venv/bin/python cgm/run_cgm.py --only gap         # gaps + per-pack coverage (informational)
 ```
+
+> **Phase-by-phase caveat:** every `run_cgm.py` invocation creates a **new
+> run_id**. When running phases as separate commands (e.g. `--only score`
+> followed by `--only verify` in a second invocation), verify's final-score
+> check is scoped to the *latest* run — which has no final-score rows yet —
+> and will report a **fourth failure line** (`no final scores for latest run -
+> scoring phase not run`) in addition to the three kappa failures. The three
+> kappa failures are the figures to compare against §7.2; the spurious
+> fourth line is an artifact of split invocations. The full single-command
+> pipeline (`run_cgm.py` with no `--only`) reproduces exactly **FAIL (3)**.
 
 Expected cost and duration for a full run: **~$3–5** in LLM + Tavily usage
 (30 extraction calls, 60 rater calls, arbitrations as needed) and **~45
