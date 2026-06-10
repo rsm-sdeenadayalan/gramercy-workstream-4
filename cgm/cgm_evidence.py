@@ -88,9 +88,10 @@ def collect_evidence(conn, run_id, extract_model):
                     text = call_llm(extract_model, EXTRACT_SYSTEM, prompt,
                                     max_tokens=4000)
                     claims = parse_claims(text, {r["url"] for r in results})
-            except Exception as err:  # noqa: BLE001 - log, gap, continue
+            except Exception as err:  # noqa: BLE001 - log and skip; retry next run
                 cgm_db.log_collection(conn, run_id, f"evidence:{country}:{dim}",
                                       "error", str(err))
+                continue
             for c in claims:
                 with conn.cursor() as cur:
                     cur.execute(
