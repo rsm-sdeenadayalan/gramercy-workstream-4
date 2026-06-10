@@ -1,6 +1,7 @@
 """World Bank quantitative anchors (free API, no key). Most-recent non-empty
 value per indicator; full provenance (URL, payload, access time) preserved."""
 import json
+import time
 
 import requests
 
@@ -30,13 +31,21 @@ def parse_wb_response(payload):
 
 def fetch_indicator(country_iso, indicator):
     url = WB_URL.format(iso=country_iso, ind=indicator)
-    resp = requests.get(url, timeout=30)
-    resp.raise_for_status()
-    payload = resp.json()
-    parsed = parse_wb_response(payload)
-    if parsed is None:
-        return None
-    return {**parsed, "source_url": url, "raw_payload": payload}
+    last_err = None
+    for attempt in range(2):
+        try:
+            resp = requests.get(url, timeout=30)
+            resp.raise_for_status()
+            payload = resp.json()
+            parsed = parse_wb_response(payload)
+            if parsed is None:
+                return None
+            return {**parsed, "source_url": url, "raw_payload": payload}
+        except Exception as err:  # noqa: BLE001 - retry transient failures
+            last_err = err
+            if attempt < 1:
+                time.sleep(2)
+    raise last_err
 
 
 def collect_anchors(conn, run_id):

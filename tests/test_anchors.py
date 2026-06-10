@@ -34,3 +34,23 @@ def test_fetch_indicator_builds_url_and_parses(mock_get):
     row = fetch_indicator("BR", "SE.ADT.LITR.ZS")
     assert row["value"] == 94.0 and row["year"] == 2022
     assert "BR" in row["source_url"] and "SE.ADT.LITR.ZS" in row["source_url"]
+
+
+@patch("cgm_anchors.time.sleep")
+@patch("cgm_anchors.requests.get")
+def test_fetch_indicator_retries_transient_failure(mock_get, _sleep):
+    ok = MagicMock(status_code=200, json=MagicMock(return_value=WB_SAMPLE))
+    mock_get.side_effect = [Exception("transient 400"), ok]
+    row = fetch_indicator("BR", "SE.ADT.LITR.ZS")
+    assert row["value"] == 94.0
+    assert mock_get.call_count == 2
+
+
+@patch("cgm_anchors.time.sleep")
+@patch("cgm_anchors.requests.get")
+def test_fetch_indicator_raises_after_retries_exhausted(mock_get, _sleep):
+    import pytest
+    mock_get.side_effect = Exception("down")
+    with pytest.raises(Exception):
+        fetch_indicator("BR", "SE.ADT.LITR.ZS")
+    assert mock_get.call_count == 2
