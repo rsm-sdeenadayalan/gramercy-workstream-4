@@ -123,9 +123,9 @@ coordinating body existence and mandate.
 
 ### D2 — Infrastructure Permitting Speed (20%)
 - 5: Fast-track permitting, weeks-to-months cycles, government actively facilitates
-- 4: Streamlined, 3–12 months, clear pathway, limited opposition mechanisms
-- 3: Standard, 12–24 months, multiple agencies, some community opposition
-- 2: Slow, 24–48 months, complex multi-stakeholder, frequent legal challenges
+- 4: Streamlined, 3-12 months, clear pathway, limited opposition mechanisms
+- 3: Standard, 12-24 months, multiple agencies, some community opposition
+- 2: Slow, 24-48 months, complex multi-stakeholder, frequent legal challenges
 - 1: Gridlock, 48+ months, unpredictable, regulatory capture by incumbents
 
 Evidence required: average permitting timeline for data centers and power generation;
