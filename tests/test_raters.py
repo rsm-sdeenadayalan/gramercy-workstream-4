@@ -60,6 +60,13 @@ def test_validate_rating_rejects_boolean_score():
     assert err is not None and "score" in err
 
 
+def test_rater_prompt_includes_decision_rules():
+    prompt = build_rater_prompt("AE", "ai_policy", EVIDENCE_ROWS, ANCHOR_ROWS)
+    assert "DECISION RULES" in prompt
+    assert "Adjacent-boundary tie-break" in prompt
+    assert "implementation uneven" in prompt   # ai_policy-specific rule present
+
+
 def test_run_raters_skips_llm_when_evidence_empty():
     """Fix A: empty evidence pack must short-circuit — no LLM calls, NULL row upserted,
     blocker gap added once per rater."""

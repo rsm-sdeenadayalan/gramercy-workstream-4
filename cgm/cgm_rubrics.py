@@ -109,6 +109,68 @@ EVIDENCE_CHECKLIST = {
 }
 
 
+# Boundary decision rules (calibration round 1, 2026-06-10). Added after the
+# first live run produced 8 one-point rater divergences; each rule below
+# resolves a recurring boundary ambiguity found in the stored rationales.
+# Per the sponsor spec, scorer disagreement = rubric under-specification.
+GLOBAL_DECISION_RULES = [
+    "Conjunctive clauses: select a level only if EVERY clause of that level's"
+    " text is supported by cited evidence; if any clause lacks evidence,"
+    " consider the next level down.",
+    "Adjacent-boundary tie-break: when the evidence supports clauses of two"
+    " adjacent levels (a mixed picture), select the LOWER level unless every"
+    " clause of the higher level is explicitly evidenced.",
+    "Documented dysfunction dominates announced intent: strategies, funding,"
+    " or frameworks that are announced but accompanied by cited evidence of"
+    " fragmentation, delay, or non-implementation are scored at the level"
+    " describing the implementation reality.",
+    "Projections do not count: market forecasts, announced or projected"
+    " capacity, and growth-rate projections are not evidence of present"
+    " capability; score on operating or contractually committed facts.",
+]
+
+DIMENSION_DECISION_RULES = {
+    "ai_policy": [
+        "Any cited evidence of uneven implementation, inter-agency"
+        " fragmentation, or lack of policy coordination caps the score at 3"
+        " (that is what 'implementation uneven' means).",
+        "AI legislation still pending (proposed, under review, not yet law)"
+        " is a 'mixed regulatory signal' consistent with level 3, not"
+        " 'generally permissive regulation'.",
+    ],
+    "permitting": [
+        "Score the GENERAL/national permitting environment. Special economic"
+        " zones and fast-track carve-outs are valid evidence, but when the"
+        " evidence covers ONLY carve-outs, score the general environment one"
+        " level below what the carve-out alone would suggest (carve-outs"
+        " exist because the default path is slower).",
+        "A documented project completion ratio below 25% (e.g. flagship or"
+        " 3-year completion data) caps the score at 2.",
+        "Level 5 requires quantitative cycle-time evidence (weeks-to-months)"
+        " for the general environment, or an operating national fast-track"
+        " instrument with documented expedited outcomes; a fast-track"
+        " instrument without cycle-time evidence is level 4.",
+    ],
+    "value_capture": [],
+    "tech_stack": [
+        "Level 5 requires ALL THREE elements with evidence: (a) deep"
+        " integration with the leading stack, (b) secure advanced chip access"
+        " (leading-edge allocation or domestic fabrication; import flows alone"
+        " are insufficient), and (c) hosting critical AI infrastructure"
+        " (operating frontier-scale compute). Missing any one means at most 4.",
+        "Semiconductor assembly/test/packaging activity evidences electronics"
+        " industry presence, NOT advanced compute chip access; without"
+        " evidence of advanced-chip availability for AI compute or operating"
+        " hyperscaler capacity, cap the score at 3.",
+    ],
+    "workforce": [],
+}
+
+
+def decision_rules_for(dimension):
+    return GLOBAL_DECISION_RULES + DIMENSION_DECISION_RULES[dimension]
+
+
 def rubric_for(dimension, country_iso):
     rubric = RUBRICS[dimension]
     if dimension == "value_capture":

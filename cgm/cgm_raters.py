@@ -6,7 +6,7 @@ import os
 
 import cgm_db
 from cgm_llm import call_llm, extract_json
-from cgm_rubrics import COUNTRIES, COUNTRY_NAMES, DIMENSIONS, rubric_for
+from cgm_rubrics import COUNTRIES, COUNTRY_NAMES, DIMENSIONS, decision_rules_for, rubric_for
 
 RATER_A_SYSTEM = """You are Rater A, scoring sovereign governance on a 1-5 rubric.
 Method - rubric-clause-first: walk the rubric from level 5 down to level 1 and
@@ -40,8 +40,11 @@ def build_rater_prompt(country_iso, dimension, evidence_rows, anchor_rows):
         f"- {r['metric']} = {r['value']} {r['unit']} ({r['year']})"
         for r in anchor_rows
     ) or "(no anchors)"
+    rules_txt = "\n".join(f"- {r}" for r in decision_rules_for(dimension))
     return (f"Country: {COUNTRY_NAMES[country_iso]}\nDimension: {dimension}\n\n"
-            f"RUBRIC:\n{rubric_txt}\n\nEVIDENCE:\n{ev_txt}\n\n"
+            f"RUBRIC:\n{rubric_txt}\n\n"
+            f"DECISION RULES (binding - apply before selecting a level):\n{rules_txt}\n\n"
+            f"EVIDENCE:\n{ev_txt}\n\n"
             f"QUANTITATIVE ANCHORS:\n{an_txt}")
 
 

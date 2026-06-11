@@ -34,3 +34,12 @@ def test_checklists_nonempty():
             items = EVIDENCE_CHECKLIST[dim] if dim != "value_capture" \
                 else EVIDENCE_CHECKLIST[dim][ARCHETYPE[country]]
             assert len(items) >= 3, dim
+
+
+def test_decision_rules_per_dimension():
+    from cgm_rubrics import decision_rules_for, GLOBAL_DECISION_RULES
+    for dim in DIMENSIONS:
+        rules = decision_rules_for(dim)
+        assert rules[:len(GLOBAL_DECISION_RULES)] == GLOBAL_DECISION_RULES
+    assert any("carve-out" in r for r in decision_rules_for("permitting"))
+    assert any("ALL THREE" in r for r in decision_rules_for("tech_stack"))
