@@ -63,7 +63,7 @@ def test_validate_rating_rejects_boolean_score():
 def test_rater_prompt_includes_decision_rules():
     prompt = build_rater_prompt("AE", "ai_policy", EVIDENCE_ROWS, ANCHOR_ROWS)
     assert "DECISION RULES" in prompt
-    assert "Adjacent-boundary tie-break" in prompt
+    assert "Clause-majority matching" in prompt
     assert "implementation uneven" in prompt   # ai_policy-specific rule present
 
 

@@ -109,21 +109,21 @@ EVIDENCE_CHECKLIST = {
 }
 
 
-# Boundary decision rules (calibration round 1, 2026-06-10). Added after the
-# first live run produced 8 one-point rater divergences; each rule below
-# resolves a recurring boundary ambiguity found in the stored rationales.
+# Boundary decision rules (calibration round 2, 2026-06-10). Replaces round-1
+# rules after round-1's conjunctive/tie-break pair manufactured new divergences
+# on cells where neither adjacent level fully fits; two round-1 rules were also
+# ambiguous. Rules below address 7 observed round-1 divergences.
 # Per the sponsor spec, scorer disagreement = rubric under-specification.
 GLOBAL_DECISION_RULES = [
-    "Conjunctive clauses: select a level only if EVERY clause of that level's"
-    " text is supported by cited evidence; if any clause lacks evidence,"
-    " consider the next level down.",
-    "Adjacent-boundary tie-break: when the evidence supports clauses of two"
-    " adjacent levels (a mixed picture), select the LOWER level unless every"
-    " clause of the higher level is explicitly evidenced.",
+    "Clause-majority matching: select the level whose clause set has the"
+    " MOST explicitly evidenced clauses and NO directly contradicted clause;"
+    " if two adjacent levels tie on evidenced-clause count, select the lower.",
     "Documented dysfunction dominates announced intent: strategies, funding,"
-    " or frameworks that are announced but accompanied by cited evidence of"
-    " fragmentation, delay, or non-implementation are scored at the level"
-    " describing the implementation reality.",
+    " or frameworks that are announced but accompanied by cited evidence"
+    " EXPLICITLY characterizing implementation as failed, delayed, or"
+    " uncoordinated are scored at the level describing that reality."
+    " The mere existence of multiple agencies or bodies is NOT dysfunction;"
+    " a cited source must state the coordination problem.",
     "Projections do not count: market forecasts, announced or projected"
     " capacity, and growth-rate projections are not evidence of present"
     " capability; score on operating or contractually committed facts.",
@@ -131,33 +131,60 @@ GLOBAL_DECISION_RULES = [
 
 DIMENSION_DECISION_RULES = {
     "ai_policy": [
-        "Any cited evidence of uneven implementation, inter-agency"
-        " fragmentation, or lack of policy coordination caps the score at 3"
-        " (that is what 'implementation uneven' means).",
+        "The 'implementation uneven' cap to level 3 applies ONLY when a cited"
+        " source explicitly characterizes implementation as uneven,"
+        " fragmented, or uncoordinated (e.g., an external review finding).",
         "AI legislation still pending (proposed, under review, not yet law)"
         " is a 'mixed regulatory signal' consistent with level 3, not"
         " 'generally permissive regulation'.",
+        "Level 5 requires all of: a national strategy with an explicit"
+        " leadership goal; committed (not proposed) dedicated funding; and"
+        " NO cited evidence of binding AI-specific regulatory obligations"
+        " that delay deployment. Sectoral rules and voluntary frameworks do"
+        " not count as regulatory friction.",
     ],
     "permitting": [
-        "Score the GENERAL/national permitting environment. Special economic"
-        " zones and fast-track carve-outs are valid evidence, but when the"
-        " evidence covers ONLY carve-outs, score the general environment one"
-        " level below what the carve-out alone would suggest (carve-outs"
-        " exist because the default path is slower).",
-        "A documented project completion ratio below 25% (e.g. flagship or"
-        " 3-year completion data) caps the score at 2.",
+        "Score the GENERAL/national permitting environment.",
+        "Carve-out-only evidence rule: when ALL cited evidence concerns"
+        " special economic zones or fast-track carve-outs, score exactly 3"
+        " (a functioning carve-out implies a standard-but-slower default"
+        " path), unless the carve-outs themselves are documented as"
+        " dysfunctional, in which case score 2.",
+        "When documented general-environment timelines span two rubric"
+        " bands, score the band containing the MIDPOINT of the documented"
+        " range. General infrastructure-quality rankings alone do not move"
+        " the score below the timeline-derived band.",
+        "A documented project completion ratio below 25% caps the score"
+        " at 2.",
         "Level 5 requires quantitative cycle-time evidence (weeks-to-months)"
         " for the general environment, or an operating national fast-track"
         " instrument with documented expedited outcomes; a fast-track"
         " instrument without cycle-time evidence is level 4.",
     ],
-    "value_capture": [],
+    "value_capture": [
+        "Fiscal reserves count as 'large' when cited evidence shows reserve"
+        " returns funding 10% or more of government spending, or documented"
+        " drawdown capacity of comparable scale; 'demonstrated history of"
+        " economic pivots' is satisfied by one or more cited historical"
+        " structural transitions.",
+        "A resource-taxation regime is 'unstable' ONLY when evidence"
+        " documents enacted changes to taxation/royalty terms within the"
+        " last five years, or active nationalization/expropriation risk."
+        " Proposed-but-unenacted changes and rate variation across"
+        " sub-national jurisdictions do not constitute instability.",
+        "Absence of a sovereign wealth fund does not by itself force the"
+        " score below 4; an SWF is required only at level 5.",
+    ],
     "tech_stack": [
         "Level 5 requires ALL THREE elements with evidence: (a) deep"
         " integration with the leading stack, (b) secure advanced chip access"
         " (leading-edge allocation or domestic fabrication; import flows alone"
         " are insufficient), and (c) hosting critical AI infrastructure"
         " (operating frontier-scale compute). Missing any one means at most 4.",
+        "The 'secure advanced chip access' requirement applies to level 5"
+        " ONLY. For level 4, import dependency combined with documented"
+        " technology-alliance participation and operating or contractually"
+        " committed hyperscaler capacity qualifies as 'manageable'.",
         "Semiconductor assembly/test/packaging activity evidences electronics"
         " industry presence, NOT advanced compute chip access; without"
         " evidence of advanced-chip availability for AI compute or operating"
