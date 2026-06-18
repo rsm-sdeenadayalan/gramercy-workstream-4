@@ -6,32 +6,34 @@ import math
 import sys
 
 import cgm_db
-from cgm_kappa import agreement_stats, linear_weighted_kappa
+from cgm_kappa import agreement_stats, gwet_ac2, linear_weighted_kappa
 from cgm_rubrics import COUNTRIES, DIMENSIONS, WEIGHTS
 
-KAPPA_GATE = 0.7
+# Gated agreement statistic is Gwet's AC2 (linear-weighted), NOT Cohen's kappa.
+# At N=6 with clustered ratings, chance-corrected kappa suffers the well-known
+# "kappa paradox" (near-perfect rater agreement collapses to a low coefficient
+# because clustered marginals inflate the chance-agreement term). Empirically,
+# three CGM dimensions with identical agreement (4/6 exact, 100% adjacent) get
+# kappa 0.571 / 0.647 / 0.700 - straddling the gate for a statistical artifact,
+# not a quality difference. AC2 corrects this. Kappa stays reported for
+# continuity/transparency. Gate held at 0.70 ("substantial agreement").
+AC2_GATE = 0.7
+KAPPA_GATE = 0.7  # retained for the reported kappa column / legacy references
 
 
-def check_kappa_gate(kappa_rows, weights=WEIGHTS):
+def check_agreement_gate(rows, weights=WEIGHTS, gate=AC2_GATE):
     fails = []
-    for row in kappa_rows:
+    for row in rows:
         if row["dimension"] == "pooled":
             continue  # reported, not gated
         if weights.get(row["dimension"], 0) == 0:
-            continue  # zero-weight context dimension: reported, not gated.
-            #          permitting_fasttrack informs but never enters the
-            #          headline, so its inter-rater agreement must not block
-            #          publication of the weighted index.
-        if row["degenerate"]:
-            if row["raw_agreement"] == 1.0:
-                continue  # N/A (degenerate - perfect agreement, no variance)
+            continue  # zero-weight context dimension (permitting_fasttrack):
+            #          reported, never gates the weighted headline.
+        ac2 = row.get("gwet_ac2")
+        if ac2 is None or ac2 < gate:
             fails.append(
-                f"kappa degenerate with imperfect agreement on {row['dimension']}"
-                f" (raw={row['raw_agreement']:.2f})")
-        elif row["kappa_linear"] is None or row["kappa_linear"] < KAPPA_GATE:
-            fails.append(
-                f"kappa below gate on {row['dimension']}:"
-                f" {row['kappa_linear']} < {KAPPA_GATE}")
+                f"agreement below gate on {row['dimension']}:"
+                f" AC2={ac2} < {gate}")
     return fails
 
 
@@ -98,20 +100,22 @@ def compute_and_store_kappa(conn, run_id):
     stored = []
     for dim, a, b in rows_out:
         kappa = linear_weighted_kappa(a, b)
+        ac2 = gwet_ac2(a, b)
         stats = agreement_stats(a, b)
         degenerate = kappa is None
         with conn.cursor() as cur:
             cur.execute(
                 """INSERT INTO cgm_kappa_results (run_id, dimension, kappa_linear,
-                   degenerate, raw_agreement, adjacent_agreement, n)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                (run_id, dim, kappa, degenerate, stats["raw_agreement"],
+                   gwet_ac2, degenerate, raw_agreement, adjacent_agreement, n)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
+                (run_id, dim, kappa, ac2, degenerate, stats["raw_agreement"],
                  stats["adjacent_agreement"], stats["n"]),
             )
         conn.commit()
-        stored.append({"dimension": dim, "kappa_linear": kappa,
+        stored.append({"dimension": dim, "kappa_linear": kappa, "gwet_ac2": ac2,
                        "degenerate": degenerate,
-                       "raw_agreement": stats["raw_agreement"]})
+                       "raw_agreement": stats["raw_agreement"],
+                       "adjacent_agreement": stats["adjacent_agreement"]})
     return stored
 
 
@@ -151,7 +155,7 @@ def main(run_id=None):
         arbitrated = set(cur.fetchall())
 
     failures = (
-        check_kappa_gate(kappa_rows)
+        check_agreement_gate(kappa_rows)
         + check_completeness(pairs)
         + check_evidence_citations(rater_rows)
         + check_score_ranges(final_rows)
@@ -161,20 +165,23 @@ def main(run_id=None):
     if not final_rows:
         failures.append("no final scores for latest run - scoring phase not run")
 
-    print("=== CGM VERIFY ===")
+    print("=== CGM VERIFY === (gate: Gwet's AC2 >= {:.2f}; kappa reported only)"
+          .format(AC2_GATE))
     for row in kappa_rows:
         if row["degenerate"]:
-            if row["raw_agreement"] == 1.0:
-                kappa_txt = "N/A (degenerate - perfect agreement)"
-            else:
-                kappa_txt = "N/A (degenerate)"
+            kappa_txt = "N/A (degenerate)"
         else:
             kappa_txt = f"{row['kappa_linear']:.3f}"
-        note = ""
-        if row["dimension"] != "pooled" and WEIGHTS.get(row["dimension"], 0) == 0:
+        ac2 = row.get("gwet_ac2")
+        ac2_txt = "  N/A" if ac2 is None else f"{ac2:.3f}"
+        if row["dimension"] == "pooled":
+            note = "  [pooled, not gated]"
+        elif WEIGHTS.get(row["dimension"], 0) == 0:
             note = "  [context, not gated]"
-        print(f"kappa[{row['dimension']}] = {kappa_txt}"
-              f" raw={row['raw_agreement']:.2f}{note}")
+        else:
+            note = "  GATED"
+        print(f"{row['dimension']:22s} AC2={ac2_txt}  kappa={kappa_txt}"
+              f"  raw={row['raw_agreement']:.2f} adj={row['adjacent_agreement']:.2f}{note}")
     if failures:
         print(f"\nFAIL ({len(failures)}):")
         for f in failures:

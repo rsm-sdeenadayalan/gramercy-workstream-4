@@ -35,11 +35,18 @@ def call_llm(model, system, user, max_tokens=2000):
 
 
 def extract_json(text):
-    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
-    candidates = [fenced.group(1)] if fenced else []
+    candidates = []
+    # Fenced ```json ... ``` block: capture the WHOLE inner body greedily.
+    # (The previous \{.*?\} was non-greedy and stopped at the first nested
+    # closing brace, mangling any object containing arrays/sub-objects.)
+    fenced = re.search(r"```(?:json)?\s*(.+?)\s*```", text, re.DOTALL)
+    if fenced:
+        candidates.append(fenced.group(1))
+    # Greedy outermost braces, then the raw text as a last resort.
     brace = re.search(r"\{.*\}", text, re.DOTALL)
     if brace:
         candidates.append(brace.group(0))
+    candidates.append(text.strip())
     for cand in candidates:
         try:
             return json.loads(cand)

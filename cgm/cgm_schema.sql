@@ -70,8 +70,9 @@ CREATE TABLE IF NOT EXISTS cgm_arbitrations (
 CREATE TABLE IF NOT EXISTS cgm_kappa_results (
     id                 SERIAL PRIMARY KEY,
     run_id             UUID NOT NULL REFERENCES cgm_runs(run_id),
-    dimension          TEXT NOT NULL,        -- 5 dims + 'pooled'
-    kappa_linear       NUMERIC,              -- NULL when degenerate
+    dimension          TEXT NOT NULL,        -- 6 dims + 'pooled'
+    kappa_linear       NUMERIC,              -- reported (NULL when degenerate)
+    gwet_ac2           NUMERIC,              -- GATED metric (paradox-robust at N=6)
     degenerate         BOOLEAN NOT NULL DEFAULT FALSE,
     raw_agreement      NUMERIC NOT NULL,
     adjacent_agreement NUMERIC NOT NULL,

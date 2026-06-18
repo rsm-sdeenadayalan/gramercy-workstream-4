@@ -16,6 +16,11 @@ ALTER TABLE cgm_score_final DROP COLUMN IF EXISTS permitting;
 ALTER TABLE cgm_score_final ADD COLUMN IF NOT EXISTS permitting_standard  NUMERIC;
 ALTER TABLE cgm_score_final ADD COLUMN IF NOT EXISTS permitting_fasttrack NUMERIC;
 
+-- Gate metric change: Gwet's AC2 replaces linear-weighted kappa as the gated
+-- agreement statistic (kappa is statistically unreliable at N=6 with clustered
+-- ratings). kappa stays reported alongside.
+ALTER TABLE cgm_kappa_results ADD COLUMN IF NOT EXISTS gwet_ac2 NUMERIC;
+
 COMMIT;
 
 -- Recreate v_cgm_latest with the new columns.

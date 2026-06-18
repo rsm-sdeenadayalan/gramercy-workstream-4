@@ -20,6 +20,19 @@ def test_extract_json_embedded_prose():
     assert extract_json(text) == {"score": 5, "rationale": "strong"}
 
 
+def test_extract_json_fenced_with_trailing_braced_prose():
+    # Regression: a fenced object followed by prose containing braces. The old
+    # parser's greedy outer-brace fallback over-captured into the trailing
+    # "{table 2}" and failed; the fenced-body capture must win.
+    text = '```json\n{"claims": [{"a": 1}]}\n```\nNote: see {table 2} above.'
+    assert extract_json(text) == {"claims": [{"a": 1}]}
+
+
+def test_extract_json_fenced_nested_objects():
+    text = '```json\n{"claims": [{"a": 1, "b": 2}, {"a": 3}]}\n```'
+    assert extract_json(text) == {"claims": [{"a": 1, "b": 2}, {"a": 3}]}
+
+
 def test_extract_json_failure_raises():
     with pytest.raises(ValueError):
         extract_json("no json here")

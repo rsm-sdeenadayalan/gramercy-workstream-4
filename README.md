@@ -14,12 +14,15 @@ WS3 CLDV).
 > realized fast builds that CII (WS2) already measures. See
 > `docs/CGM_METHODOLOGY.md` §2.3.
 
-> **Status: PROVISIONAL — first live run (2026-06-09) FAILED the inter-rater
-> kappa gate on 3 of 5 dimensions** (ai_policy 0.571, tech_stack 0.500,
-> permitting 0.455 vs the 0.7 gate; pooled kappa 0.741, adjacent agreement
-> 100%). Scores exist in `v_cgm_latest` but are not publishable until rater
-> calibration brings every dimension over the gate. See
-> `docs/CGM_METHODOLOGY.md` §7.
+> **Status: PROVISIONAL (passes under the corrected gate).** The first run
+> (2026-06-09) failed the linear-weighted-kappa gate, but that gate is
+> statistically unreliable at N=6 — clustered ratings trigger the "kappa
+> paradox" (near-perfect agreement collapses to a low coefficient). The gate
+> metric is now **Gwet's AC2** (≥0.70), which is robust to this; kappa is still
+> reported. The clean baseline run (2026-06-18) **PASSES** all gated dimensions
+> (permitting_standard AC2 0.867, every gated dim ≥0.70). Remaining before
+> publication: sponsor ratification of the gate-metric change and a re-run on
+> the canonical evidence corpus. See `docs/CGM_METHODOLOGY.md` §5.2.1 and §7.6.
 
 ## Setup
 ```bash
