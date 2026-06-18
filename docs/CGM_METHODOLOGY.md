@@ -30,17 +30,29 @@ each scored on a 1–5 rubric; the composite is the weighted sum, reported on a
 0–5 scale (the composite of 1–5 scores lies in [1,5] ⊂ [0,5]; no rescaling):
 
 ```
-CGM = 0.25×ai_policy + 0.20×permitting + 0.20×value_capture
-    + 0.20×tech_stack + 0.15×workforce
+CGM = 0.25×ai_policy + 0.20×permitting_standard + 0.00×permitting_fasttrack
+    + 0.20×value_capture + 0.20×tech_stack + 0.15×workforce
 ```
 
 | dimension | weight | name |
 |---|---|---|
 | `ai_policy` | 0.25 | AI Policy Posture |
-| `permitting` | 0.20 | Infrastructure Permitting Speed |
+| `permitting_standard` | 0.20 | Infrastructure Permitting Speed — default path |
+| `permitting_fasttrack` | 0.00 | Fast-track / SEZ availability (context only) |
 | `value_capture` | 0.20 | Resource Value Capture Capacity |
 | `tech_stack` | 0.20 | Technology Stack Alignment |
 | `workforce` | 0.15 | Workforce Adaptability |
+
+`permitting_fasttrack` is scored and stored for transparency but carries **zero
+headline weight** (sponsor decision, 2026-06-18). Rationale: CII (WS2) already
+measures whether fast builds actually happen (installed capacity, growth
+velocity, pipeline-to-grid ratio), so a delivering fast-track already shows up
+there as realized compute. CGM's role in the multiplier is to measure
+institutional/systemic capacity, not realized output. Folding fast-track into
+the permitting headline would re-import the same real-world fact and pay for it
+twice. Keeping the headline on the default path preserves a clean division of
+labor: CII answers "did they build it," CGM answers "how good is the system that
+has to build it." See §2.3 for why permitting was split.
 
 Weights are defined once, in `cgm/cgm_rubrics.py` (`WEIGHTS`), and verified to
 sum to 1.0 by the QA gate (§6). Half-point final scores (e.g. 4.5) arise from
@@ -88,19 +100,49 @@ Evidence checklist (`EVIDENCE_CHECKLIST["ai_policy"]`):
 - regulatory sandbox count and scope
 - national AI coordinating body existence and mandate
 
-### 2.3 D2 — `permitting`: Infrastructure Permitting Speed (20%)
+### 2.3 D2 — Infrastructure Permitting Speed (20%), split into two sub-indicators
 
-- **5:** Fast-track permitting, weeks-to-months cycles, government actively facilitates
-- **4:** Streamlined, 3-12 months, clear pathway, limited opposition mechanisms
-- **3:** Standard, 12-24 months, multiple agencies, some community opposition
-- **2:** Slow, 24-48 months, complex multi-stakeholder, frequent legal challenges
-- **1:** Gridlock, 48+ months, unpredictable, regulatory capture by incumbents
+**Why split.** The original single `permitting` scale conflated two distinct
+questions — how fast is the *default* approval path, and does a *fast-track*
+exist — on one 1–5 axis. For dual-track countries (BR/IN/PH/SG), which run a
+slow ordinary process alongside an SEZ fast-lane, this is genuinely ambiguous:
+one rater grades the fast lane and another the slow lane, both reading the
+evidence correctly. The result was a persistent inter-rater split that kept
+`permitting` below the 0.70 kappa gate, isolated (richer evidence reproduced the
+same split, ruling out thin evidence). Splitting the dimension into two
+single-axis sub-indicators removes the ambiguity.
+
+#### 2.3a `permitting_standard` — default approval path (headline, weight 0.20)
+
+- **5:** Default (non-carve-out) approval in weeks-to-months; government actively facilitates the standard path
+- **4:** Standard path streamlined, 3-12 months, clear pathway, limited opposition mechanisms
+- **3:** Standard path 12-24 months, multiple agencies, some community opposition
+- **2:** Standard path slow, 24-48 months, complex multi-stakeholder, frequent legal challenges
+- **1:** Standard path gridlock, 48+ months, unpredictable, regulatory capture by incumbents
 
 Evidence checklist:
-- average permitting timeline for data centers and power generation
-- announced vs. completed projects (3-year completion ratio)
-- special economic zones or fast-track frameworks
-- documented delays or cancellations
+- average permitting timeline for data centers and power via the DEFAULT (non-carve-out) path
+- announced vs. completed projects on the standard path (3-year completion ratio)
+- documented delays or cancellations on standard-path projects
+
+#### 2.3b `permitting_fasttrack` — fast-track / SEZ availability (context, weight 0.00)
+
+Graded on documented expedited *outcomes* and breadth of access, not the mere
+existence of an instrument. Published for transparency; **not** weighted into
+the headline (see §1 rationale — avoids double-counting CII's realized-build
+measures).
+
+- **5:** Operating fast-track instrument with documented expedited outcomes, broadly accessible (not zone-/sector-restricted), weeks-to-months
+- **4:** Operating fast-track/SEZ instrument with documented expedited outcomes, but access conditional on zone, sector, or investment threshold
+- **3:** Fast-track instrument exists in limited zones; expedited outcomes only partially documented or uneven
+- **2:** Fast-track announced but no documented expedited outcomes, or available only to a narrow set of incumbents
+- **1:** No fast-track instrument; no expedited pathway available
+
+Evidence checklist:
+- existence and legal basis of SEZ / fast-track instrument
+- documented expedited timelines actually achieved (not statutory targets)
+- eligibility conditions and accessibility (zone, sector, investment threshold)
+- share of projects routed through the fast-track vs. the standard path
 
 ### 2.4 D3 — `value_capture`: Resource Value Capture Capacity (20%)
 

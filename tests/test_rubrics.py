@@ -41,5 +41,6 @@ def test_decision_rules_per_dimension():
     for dim in DIMENSIONS:
         rules = decision_rules_for(dim)
         assert rules[:len(GLOBAL_DECISION_RULES)] == GLOBAL_DECISION_RULES
-    assert any("carve-out" in r for r in decision_rules_for("permitting"))
+    assert any("DEFAULT path" in r for r in decision_rules_for("permitting_standard"))
+    assert any("EXPEDITED OUTCOMES" in r for r in decision_rules_for("permitting_fasttrack"))
     assert any("ALL THREE" in r for r in decision_rules_for("tech_stack"))

@@ -11,7 +11,8 @@ def kappa_row(dim, kappa, raw, degenerate=False):
 
 def test_kappa_gate_passes_at_07():
     rows = [kappa_row(d, 0.7, 0.8) for d in
-            ("ai_policy", "permitting", "value_capture", "tech_stack", "workforce")]
+            ("ai_policy", "permitting_standard", "permitting_fasttrack",
+             "value_capture", "tech_stack", "workforce")]
     assert check_kappa_gate(rows) == []
 
 
@@ -22,20 +23,20 @@ def test_kappa_gate_fails_below_07():
 
 
 def test_kappa_gate_degenerate_perfect_agreement_passes():
-    assert check_kappa_gate([kappa_row("permitting", None, 1.0,
+    assert check_kappa_gate([kappa_row("permitting_standard", None, 1.0,
                                        degenerate=True)]) == []
 
 
 def test_kappa_gate_degenerate_imperfect_fails():
-    fails = check_kappa_gate([kappa_row("permitting", None, 0.5,
+    fails = check_kappa_gate([kappa_row("permitting_fasttrack", None, 0.5,
                                         degenerate=True)])
     assert len(fails) == 1
 
 
 def test_completeness():
     full = [(c, d) for c in ("US", "AE", "BR", "IN", "SG", "PH")
-            for d in ("ai_policy", "permitting", "value_capture",
-                      "tech_stack", "workforce")]
+            for d in ("ai_policy", "permitting_standard", "permitting_fasttrack",
+                      "value_capture", "tech_stack", "workforce")]
     assert check_completeness(full) == []
     fails = check_completeness(full[:-1])
     assert len(fails) == 1 and "PH" in fails[0] and "workforce" in fails[0]

@@ -1,11 +1,18 @@
 # Gramercy WS4 - CGM (Chessboard Governance Multiplier)
 
-Scores 6 countries (US, AE, BR, IN, SG, PH) on 5 governance dimensions using
+Scores 6 countries (US, AE, BR, IN, SG, PH) on governance dimensions using
 structured 1-5 rubrics, an LLM rater panel (2 blind raters + arbiter), and a
 Cohen's-kappa QA gate. Fourth index in the Gramercy capstone (WS1 SDI, WS2 CII,
 WS3 CLDV).
 
-**CGM = 0.25*AIPolicy + 0.20*Permitting + 0.20*ValueCapture + 0.20*TechStack + 0.15*Workforce**
+**CGM = 0.25*AIPolicy + 0.20*Permitting(standard) + 0.20*ValueCapture + 0.20*TechStack + 0.15*Workforce**
+
+> Permitting is split into `permitting_standard` (default approval path —
+> headline, weight 0.20) and `permitting_fasttrack` (SEZ/fast-track
+> availability — published as context, weight 0.00). The split resolves an
+> inter-rater divergence on dual-track countries and avoids double-counting
+> realized fast builds that CII (WS2) already measures. See
+> `docs/CGM_METHODOLOGY.md` §2.3.
 
 > **Status: PROVISIONAL — first live run (2026-06-09) FAILED the inter-rater
 > kappa gate on 3 of 5 dimensions** (ai_policy 0.571, tech_stack 0.500,

@@ -84,11 +84,12 @@ CREATE TABLE IF NOT EXISTS cgm_score_final (
     run_id        UUID NOT NULL REFERENCES cgm_runs(run_id),
     country_iso   TEXT NOT NULL,
     archetype     TEXT NOT NULL CHECK (archetype IN ('substrate','processor')),
-    ai_policy     NUMERIC NOT NULL,
-    permitting    NUMERIC NOT NULL,
-    value_capture NUMERIC NOT NULL,
-    tech_stack    NUMERIC NOT NULL,
-    workforce     NUMERIC NOT NULL,
+    ai_policy            NUMERIC NOT NULL,
+    permitting_standard  NUMERIC NOT NULL,   -- headline permitting (weight 0.20)
+    permitting_fasttrack NUMERIC NOT NULL,   -- context only (weight 0.00)
+    value_capture        NUMERIC NOT NULL,
+    tech_stack           NUMERIC NOT NULL,
+    workforce            NUMERIC NOT NULL,
     cgm_score     NUMERIC NOT NULL,          -- 0-5 scale
     computed_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (run_id, country_iso)
@@ -115,7 +116,8 @@ CREATE TABLE IF NOT EXISTS cgm_data_gaps (
 
 CREATE OR REPLACE VIEW v_cgm_latest AS
 SELECT f.country_iso, f.archetype,
-       f.ai_policy, f.permitting, f.value_capture, f.tech_stack, f.workforce,
+       f.ai_policy, f.permitting_standard, f.permitting_fasttrack,
+       f.value_capture, f.tech_stack, f.workforce,
        f.cgm_score,
        RANK() OVER (ORDER BY f.cgm_score DESC) AS rank,
        f.computed_at

@@ -36,9 +36,10 @@ def test_combine_divergent_without_arbiter_raises():
 
 
 def test_composite_weighted():
-    dims = {"ai_policy": 5, "permitting": 4, "value_capture": 4,
-            "tech_stack": 5, "workforce": 3}
-    expected = 0.25 * 5 + 0.20 * 4 + 0.20 * 4 + 0.20 * 5 + 0.15 * 3
+    dims = {"ai_policy": 5, "permitting_standard": 4, "permitting_fasttrack": 2,
+            "value_capture": 4, "tech_stack": 5, "workforce": 3}
+    # permitting_fasttrack has weight 0.00, so it must not affect the composite
+    expected = 0.25 * 5 + 0.20 * 4 + 0.00 * 2 + 0.20 * 4 + 0.20 * 5 + 0.15 * 3
     assert math.isclose(composite(dims), expected)
 
 
@@ -51,10 +52,10 @@ def test_perturb_weights_renormalizes():
 def test_sensitivity_detects_rank_change():
     # two countries, one dimension dominant: shifting weight flips ranking
     scores = {
-        "AA": {"ai_policy": 5, "permitting": 1, "value_capture": 3,
-               "tech_stack": 3, "workforce": 3},
-        "BB": {"ai_policy": 1, "permitting": 5, "value_capture": 3,
-               "tech_stack": 3, "workforce": 3},
+        "AA": {"ai_policy": 5, "permitting_standard": 1, "permitting_fasttrack": 3,
+               "value_capture": 3, "tech_stack": 3, "workforce": 3},
+        "BB": {"ai_policy": 1, "permitting_standard": 5, "permitting_fasttrack": 3,
+               "value_capture": 3, "tech_stack": 3, "workforce": 3},
     }
     report = sensitivity(scores)
     assert any(item["ranking_changed"] for item in report)

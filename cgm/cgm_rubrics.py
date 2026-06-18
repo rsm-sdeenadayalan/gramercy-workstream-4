@@ -6,10 +6,16 @@ COUNTRY_NAMES = {
     "US": "United States", "AE": "United Arab Emirates", "BR": "Brazil",
     "IN": "India", "SG": "Singapore", "PH": "Philippines",
 }
-DIMENSIONS = ["ai_policy", "permitting", "value_capture", "tech_stack", "workforce"]
+DIMENSIONS = ["ai_policy", "permitting_standard", "permitting_fasttrack",
+              "value_capture", "tech_stack", "workforce"]
+# permitting_fasttrack is measured and published as context but carries ZERO
+# headline weight (sponsor decision 2026-06-18). Folding fast-track delivery
+# into the headline would double-count realized fast builds that CII (WS2)
+# already captures as installed capacity / growth velocity. Division of labor:
+# CII = "did they build it"; CGM = "how good is the system that must build it".
 WEIGHTS = {
-    "ai_policy": 0.25, "permitting": 0.20, "value_capture": 0.20,
-    "tech_stack": 0.20, "workforce": 0.15,
+    "ai_policy": 0.25, "permitting_standard": 0.20, "permitting_fasttrack": 0.00,
+    "value_capture": 0.20, "tech_stack": 0.20, "workforce": 0.15,
 }
 ARCHETYPE = {
     "US": "substrate", "AE": "substrate", "BR": "substrate",
@@ -24,12 +30,26 @@ RUBRICS = {
         2: "Heavy regulatory framework creating significant compliance costs and deployment delays",
         1: "Restrictive or punitive regulation, no coherent strategy, active barriers to deployment",
     },
-    "permitting": {
-        5: "Fast-track permitting, weeks-to-months cycles, government actively facilitates",
-        4: "Streamlined, 3-12 months, clear pathway, limited opposition mechanisms",
-        3: "Standard, 12-24 months, multiple agencies, some community opposition",
-        2: "Slow, 24-48 months, complex multi-stakeholder, frequent legal challenges",
-        1: "Gridlock, 48+ months, unpredictable, regulatory capture by incumbents",
+    # Default/ordinary approval path ONLY — a single time-band axis. No
+    # fast-track language; that lives in permitting_fasttrack. This split
+    # resolves the inter-rater divergence on dual-track countries (BR/IN/PH/SG),
+    # where the old conflated scale let one rater grade the fast lane and the
+    # other the slow lane, both correctly.
+    "permitting_standard": {
+        5: "Default (non-carve-out) approval in weeks-to-months; government actively facilitates the standard path",
+        4: "Standard path streamlined, 3-12 months, clear pathway, limited opposition mechanisms",
+        3: "Standard path 12-24 months, multiple agencies, some community opposition",
+        2: "Standard path slow, 24-48 months, complex multi-stakeholder, frequent legal challenges",
+        1: "Standard path gridlock, 48+ months, unpredictable, regulatory capture by incumbents",
+    },
+    # Fast-track / SEZ availability — graded on documented expedited OUTCOMES
+    # and breadth of access, not the mere existence of an instrument.
+    "permitting_fasttrack": {
+        5: "Operating fast-track instrument with documented expedited outcomes, broadly accessible (not zone-/sector-restricted), weeks-to-months",
+        4: "Operating fast-track/SEZ instrument with documented expedited outcomes, but access conditional on zone, sector, or investment threshold",
+        3: "Fast-track instrument exists in limited zones; expedited outcomes only partially documented or uneven",
+        2: "Fast-track announced but no documented expedited outcomes, or available only to a narrow set of incumbents",
+        1: "No fast-track instrument; no expedited pathway available",
     },
     "value_capture": {
         "substrate": {
@@ -72,11 +92,16 @@ EVIDENCE_CHECKLIST = {
         "regulatory sandbox count and scope",
         "national AI coordinating body existence and mandate",
     ],
-    "permitting": [
-        "average permitting timeline for data centers and power generation",
-        "announced vs. completed projects (3-year completion ratio)",
-        "special economic zones or fast-track frameworks",
-        "documented delays or cancellations",
+    "permitting_standard": [
+        "average permitting timeline for data centers and power via the DEFAULT (non-carve-out) path",
+        "announced vs. completed projects on the standard path (3-year completion ratio)",
+        "documented delays or cancellations on standard-path projects",
+    ],
+    "permitting_fasttrack": [
+        "existence and legal basis of SEZ / fast-track instrument",
+        "documented expedited timelines actually achieved (not statutory targets)",
+        "eligibility conditions and accessibility (zone, sector, investment threshold)",
+        "share of projects routed through the fast-track vs. the standard path",
     ],
     "value_capture": {
         "substrate": [
@@ -143,23 +168,22 @@ DIMENSION_DECISION_RULES = {
         " that delay deployment. Sectoral rules and voluntary frameworks do"
         " not count as regulatory friction.",
     ],
-    "permitting": [
-        "Score the GENERAL/national permitting environment.",
-        "Carve-out-only evidence rule: when ALL cited evidence concerns"
-        " special economic zones or fast-track carve-outs, score exactly 3"
-        " (a functioning carve-out implies a standard-but-slower default"
-        " path), unless the carve-outs themselves are documented as"
-        " dysfunctional, in which case score 2.",
-        "When documented general-environment timelines span two rubric"
-        " bands, score the band containing the MIDPOINT of the documented"
-        " range. General infrastructure-quality rankings alone do not move"
-        " the score below the timeline-derived band.",
-        "A documented project completion ratio below 25% caps the score"
-        " at 2.",
-        "Level 5 requires quantitative cycle-time evidence (weeks-to-months)"
-        " for the general environment, or an operating national fast-track"
-        " instrument with documented expedited outcomes; a fast-track"
-        " instrument without cycle-time evidence is level 4.",
+    "permitting_standard": [
+        "Score the DEFAULT path only; ignore SEZ/fast-track evidence entirely"
+        " (it belongs to permitting_fasttrack).",
+        "When documented standard-path timelines span two rubric bands, score"
+        " the band containing the MIDPOINT of the documented range. General"
+        " infrastructure-quality rankings alone do not move the score below"
+        " the timeline-derived band.",
+        "A documented standard-path project completion ratio below 25% caps"
+        " the score at 2.",
+    ],
+    "permitting_fasttrack": [
+        "Score on documented EXPEDITED OUTCOMES, not the mere existence of an"
+        " instrument; an announced instrument with no achieved timelines is at"
+        " most level 2.",
+        "Breadth of access moves the score: a fast-track open only to one zone"
+        " or sector is at most level 4 even with strong documented outcomes.",
     ],
     "value_capture": [
         "Fiscal reserves count as 'large' when cited evidence shows reserve"

@@ -29,7 +29,8 @@ def test_latest_view_only_finished_runs():
 
 def test_latest_view_exposes_integration_columns():
     view = SCHEMA[SCHEMA.index("CREATE OR REPLACE VIEW v_cgm_latest"):]
-    for col in ("country_iso", "ai_policy", "permitting", "value_capture",
+    for col in ("country_iso", "ai_policy", "permitting_standard",
+                "permitting_fasttrack", "value_capture",
                 "tech_stack", "workforce", "cgm_score", "rank", "computed_at"):
         assert col in view, col
 

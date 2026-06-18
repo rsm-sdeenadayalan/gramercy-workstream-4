@@ -93,16 +93,19 @@ def compute_final_scores(conn, run_id, rater_models):
         with conn.cursor() as cur:
             cur.execute(
                 """INSERT INTO cgm_score_final (run_id, country_iso, archetype,
-                   ai_policy, permitting, value_capture, tech_stack, workforce,
-                   cgm_score)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                   ai_policy, permitting_standard, permitting_fasttrack,
+                   value_capture, tech_stack, workforce, cgm_score)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                    ON CONFLICT (run_id, country_iso) DO UPDATE SET
-                     ai_policy=EXCLUDED.ai_policy, permitting=EXCLUDED.permitting,
+                     ai_policy=EXCLUDED.ai_policy,
+                     permitting_standard=EXCLUDED.permitting_standard,
+                     permitting_fasttrack=EXCLUDED.permitting_fasttrack,
                      value_capture=EXCLUDED.value_capture,
                      tech_stack=EXCLUDED.tech_stack, workforce=EXCLUDED.workforce,
                      cgm_score=EXCLUDED.cgm_score, computed_at=now()""",
                 (run_id, country, ARCHETYPE[country], dims["ai_policy"],
-                 dims["permitting"], dims["value_capture"], dims["tech_stack"],
+                 dims["permitting_standard"], dims["permitting_fasttrack"],
+                 dims["value_capture"], dims["tech_stack"],
                  dims["workforce"], composite(dims)),
             )
         conn.commit()
