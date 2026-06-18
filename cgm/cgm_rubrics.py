@@ -92,16 +92,20 @@ EVIDENCE_CHECKLIST = {
         "regulatory sandbox count and scope",
         "national AI coordinating body existence and mandate",
     ],
+    # NB: checklist items double as Tavily search queries (cgm_evidence searches
+    # "<country> <item>"), so they must read as clean search strings. The
+    # standard-vs-fast-track scoping is enforced by the rubric + decision rules,
+    # not by narrowing the search; both packs may surface overlapping evidence.
     "permitting_standard": [
-        "average permitting timeline for data centers and power via the DEFAULT (non-carve-out) path",
-        "announced vs. completed projects on the standard path (3-year completion ratio)",
-        "documented delays or cancellations on standard-path projects",
+        "average permitting timeline for data centers and power plants",
+        "data center and power plant project completion rate vs announcements",
+        "documented permitting delays or project cancellations for data centers",
     ],
     "permitting_fasttrack": [
-        "existence and legal basis of SEZ / fast-track instrument",
-        "documented expedited timelines actually achieved (not statutory targets)",
-        "eligibility conditions and accessibility (zone, sector, investment threshold)",
-        "share of projects routed through the fast-track vs. the standard path",
+        "special economic zone fast-track permitting for data centers",
+        "fast-track approval timelines achieved in special economic zones",
+        "special economic zone eligibility requirements for investors",
+        "share of projects using fast-track versus standard permitting",
     ],
     "value_capture": {
         "substrate": [
