@@ -12,11 +12,16 @@ from cgm_rubrics import COUNTRIES, DIMENSIONS, WEIGHTS
 KAPPA_GATE = 0.7
 
 
-def check_kappa_gate(kappa_rows):
+def check_kappa_gate(kappa_rows, weights=WEIGHTS):
     fails = []
     for row in kappa_rows:
         if row["dimension"] == "pooled":
             continue  # reported, not gated
+        if weights.get(row["dimension"], 0) == 0:
+            continue  # zero-weight context dimension: reported, not gated.
+            #          permitting_fasttrack informs but never enters the
+            #          headline, so its inter-rater agreement must not block
+            #          publication of the weighted index.
         if row["degenerate"]:
             if row["raw_agreement"] == 1.0:
                 continue  # N/A (degenerate - perfect agreement, no variance)
@@ -165,8 +170,11 @@ def main(run_id=None):
                 kappa_txt = "N/A (degenerate)"
         else:
             kappa_txt = f"{row['kappa_linear']:.3f}"
+        note = ""
+        if row["dimension"] != "pooled" and WEIGHTS.get(row["dimension"], 0) == 0:
+            note = "  [context, not gated]"
         print(f"kappa[{row['dimension']}] = {kappa_txt}"
-              f" raw={row['raw_agreement']:.2f}")
+              f" raw={row['raw_agreement']:.2f}{note}")
     if failures:
         print(f"\nFAIL ({len(failures)}):")
         for f in failures:

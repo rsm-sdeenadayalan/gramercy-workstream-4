@@ -28,9 +28,23 @@ def test_kappa_gate_degenerate_perfect_agreement_passes():
 
 
 def test_kappa_gate_degenerate_imperfect_fails():
-    fails = check_kappa_gate([kappa_row("permitting_fasttrack", None, 0.5,
+    fails = check_kappa_gate([kappa_row("permitting_standard", None, 0.5,
                                         degenerate=True)])
     assert len(fails) == 1
+
+
+def test_kappa_gate_exempts_zero_weight_context_dimension():
+    # permitting_fasttrack has weight 0.00 - reported but never gated, so a low
+    # kappa on it must not block publication of the weighted headline.
+    assert check_kappa_gate([kappa_row("permitting_fasttrack", 0.40, 0.6)]) == []
+    assert check_kappa_gate([kappa_row("permitting_fasttrack", None, 0.5,
+                                       degenerate=True)]) == []
+
+
+def test_kappa_gate_still_fails_weighted_dimension_below_gate():
+    # sanity: the exemption is weight-scoped, not a blanket pass
+    fails = check_kappa_gate([kappa_row("permitting_standard", 0.40, 0.6)])
+    assert len(fails) == 1 and "permitting_standard" in fails[0]
 
 
 def test_completeness():
