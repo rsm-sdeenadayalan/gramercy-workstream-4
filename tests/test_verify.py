@@ -10,15 +10,17 @@ def kappa_row(dim, ac2, raw, kappa=None, degenerate=False):
             "degenerate": degenerate, "raw_agreement": raw}
 
 
-def test_agreement_gate_passes_at_07():
-    rows = [kappa_row(d, 0.7, 0.8) for d in
+def test_agreement_gate_passes_at_threshold():
+    # AC2 gate is 0.75; values at/above it pass.
+    rows = [kappa_row(d, 0.75, 0.8) for d in
             ("ai_policy", "permitting_standard", "permitting_fasttrack",
              "value_capture", "tech_stack", "workforce")]
     assert check_agreement_gate(rows) == []
 
 
-def test_agreement_gate_fails_below_07():
-    fails = check_agreement_gate([kappa_row("ai_policy", 0.69, 0.8)])
+def test_agreement_gate_fails_just_below_threshold():
+    # 0.74 < 0.75 must fail (boundary check for the stricter AC2 gate)
+    fails = check_agreement_gate([kappa_row("ai_policy", 0.74, 0.8)])
     assert len(fails) == 1 and "ai_policy" in fails[0]
 
 

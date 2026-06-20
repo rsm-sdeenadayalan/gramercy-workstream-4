@@ -16,8 +16,18 @@ from cgm_rubrics import COUNTRIES, DIMENSIONS, WEIGHTS
 # three CGM dimensions with identical agreement (4/6 exact, 100% adjacent) get
 # kappa 0.571 / 0.647 / 0.700 - straddling the gate for a statistical artifact,
 # not a quality difference. AC2 corrects this. Kappa stays reported for
-# continuity/transparency. Gate held at 0.70 ("substantial agreement").
-AC2_GATE = 0.7
+# continuity/transparency.
+#
+# Threshold = 0.75. This is deliberately NOT inherited from kappa's 0.70: AC2
+# reads systematically higher than kappa on the same data, so reusing 0.70 would
+# have made the gate more lenient than before. 0.75 sits in the "substantial"
+# agreement band and is strictly stricter than the old kappa convention, while
+# leaving enough margin to survive the canonical-corpus re-run. On the clean
+# baseline every gated dimension scores AC2 in 0.82-1.00 - all clear 0.75 with
+# >=0.07 margin, and in fact all clear the stricter 0.80 "high agreement"
+# benchmark too (lowest gated = value_capture 0.822). The sponsor may tighten to
+# 0.80 on ratification; the data supports either.
+AC2_GATE = 0.75
 KAPPA_GATE = 0.7  # retained for the reported kappa column / legacy references
 
 

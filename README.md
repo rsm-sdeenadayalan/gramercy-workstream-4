@@ -18,11 +18,12 @@ WS3 CLDV).
 > (2026-06-09) failed the linear-weighted-kappa gate, but that gate is
 > statistically unreliable at N=6 — clustered ratings trigger the "kappa
 > paradox" (near-perfect agreement collapses to a low coefficient). The gate
-> metric is now **Gwet's AC2** (≥0.70), which is robust to this; kappa is still
+> metric is now **Gwet's AC2** (≥0.75), which is robust to this; kappa is still
 > reported. The clean baseline run (2026-06-18) **PASSES** all gated dimensions
-> (permitting_standard AC2 0.867, every gated dim ≥0.70). Remaining before
-> publication: sponsor ratification of the gate-metric change and a re-run on
-> the canonical evidence corpus. See `docs/CGM_METHODOLOGY.md` §5.2.1 and §7.6.
+> (permitting_standard AC2 0.867; every gated dim 0.82–1.00, clearing even the
+> stricter 0.80 benchmark). Remaining before publication: sponsor ratification
+> of the gate-metric change and a re-run on the canonical evidence corpus. See
+> `docs/CGM_METHODOLOGY.md` §5.2.1 and §7.6.
 
 ## Setup
 ```bash
